@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KineVent Logger</title>
-
+    
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -172,7 +172,7 @@
     </div>
 
     <div id="toast" class="toast"></div>
-
+    
     <script type="module">
         // --- IMPORTACIONES DE FIREBASE ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -182,9 +182,8 @@
         // =======================================================================
         // PASO IMPORTANTE: CONFIGURACIÓN DE FIREBASE
         // =======================================================================
-        // En un paso más adelante, crearás un proyecto en Firebase.
-        // Firebase te dará un código como este. Deberás reemplazar este
-        // bloque de ejemplo con el código que te de Firebase.
+        // Aquí debes pegar el objeto de configuración que obtuviste de Firebase.
+        // Si no lo has hecho, la app mostrará un aviso y no guardará datos.
         const firebaseConfig = {
           apiKey: "AIzaSy...xxxxxxxxxxxxxxxxxxx", // Reemplazar con tu clave
           authDomain: "tu-proyecto.firebaseapp.com", // Reemplazar
@@ -194,7 +193,7 @@
           appId: "1:1234567890:web:abcdef123456" // Reemplazar
         };
         // =======================================================================
-
+        
         // --- REFERENCIAS A ELEMENTOS DEL DOM ---
         const imageUpload = document.getElementById('imageUpload');
         const imagePreview = document.getElementById('imagePreview');
@@ -234,7 +233,7 @@
                 const app = initializeApp(firebaseConfig);
                 const db = getFirestore(app);
                 const auth = getAuth(app);
-
+                
                 let userId = null;
                 let recordsCollection;
 
@@ -243,7 +242,7 @@
                         userId = user.uid;
                         recordsCollection = collection(db, `kinevent-users/${userId}/records`);
                         loadRecords(recordsCollection); // Pasa la colección como argumento
-
+                        
                         // Asigna los listeners a los botones que dependen de Firebase
                         saveButton.addEventListener('click', () => handleSave(recordsCollection));
                         dataTableBody.addEventListener('click', (e) => handleTableClick(e, db, userId));
@@ -262,7 +261,7 @@
             }
         }
 
-        // --- El resto del código que hace funcionar la app ---
+        // --- MANEJO DE IMÁGENES Y OCR ---
         imageUpload.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -303,6 +302,7 @@
             }
         });
 
+        // --- FUNCIONES DE ASISTENTE IA ---
         analysisButton.addEventListener('click', () => generateAIAssistance('analysis'));
         noteButton.addEventListener('click', () => generateAIAssistance('note'));
         weaningButton.addEventListener('click', () => generateAIAssistance('weaning'));
@@ -371,6 +371,7 @@
             document.body.removeChild(textArea);
         });
 
+        // --- FUNCIONES DEL FORMULARIO Y DATOS ---
         function populateForm(data) {
             dataForm.reset();
             document.getElementById('recordId').value = '';
@@ -508,7 +509,7 @@
             setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
         }
     </script>
-
+    
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
