@@ -6,17 +6,28 @@
     <title>KineVent Logger</title>
 
     <link rel="manifest" href="manifest.json">
-
-    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KineVent">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/2563eb/ffffff?text=KVL">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.x/dist/typography.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
+        .spinner { border: 4px solid rgba(0,0,0,0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #09f; animation: spin 1s ease infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px; opacity: 0; transition: opacity 0.5s, visibility 0.5s; }
+        .toast.show { visibility: visible; opacity: 1; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
+
+    <div id="firebase-config-alert" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 m-4 rounded-lg" role="alert">
+      <p class="font-bold">Acción Requerida</p>
+      <p>La aplicación no está conectada a una base de datos. Por favor, crea un proyecto en Firebase y pega tu objeto de configuración en el archivo `index.html` para habilitar el guardado de datos.</p>
+    </div>
 
     <div class="container mx-auto p-4 md:p-8 max-w-6xl">
         <header class="text-center mb-8">
@@ -27,21 +38,476 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="bg-white p-6 rounded-2xl shadow-lg">
                 <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Paso 1: Cargar y Procesar</h2>
+                <div class="mb-4">
+                    <label for="imageUpload" class="block text-md font-medium text-gray-700 mb-2">Sube la foto del monitor Neumovent:</label>
+                    <input type="file" id="imageUpload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
                 </div>
+                <div id="imagePreviewContainer" class="mb-4 hidden">
+                    <p class="text-md font-medium text-gray-700 mb-2">Previsualización:</p>
+                    <img id="imagePreview" src="#" alt="Vista previa de la imagen" class="max-w-full h-auto rounded-lg shadow-md border"/>
+                </div>
+                <button id="processButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 flex items-center justify-center disabled:bg-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                    ✨ Procesar Monitor (OCR)
+                </button>
+                <div id="loader" class="hidden mt-4 flex justify-center items-center space-x-2">
+                    <div class="spinner"></div>
+                    <span class="text-gray-600">Analizando imagen...</span>
+                </div>
+            </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-lg">
                 <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Paso 2: Verificar y Guardar</h2>
+                <form id="dataForm" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <input type="hidden" id="recordId">
+                    <div class="col-span-3">
+                        <label for="patientId" class="block text-sm font-medium text-gray-700">ID Paciente</label>
+                        <input type="text" id="patientId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Ej: Cama 5">
+                    </div>
+                    <div>
+                        <label for="peep_prog" class="block text-sm font-medium text-gray-700">PEEP Prog. (cmH₂O)</label>
+                        <input type="number" id="peep_prog" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="fio2_prog" class="block text-sm font-medium text-gray-700">FiO₂ Prog. (%)</label>
+                        <input type="number" id="fio2_prog" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="fr_prog" class="block text-sm font-medium text-gray-700">FR Prog. (rpm)</label>
+                        <input type="number" id="fr_prog" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="fr_total" class="block text-sm font-medium text-gray-700">FR Total (rpm)</label>
+                        <input type="number" id="fr_total" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="pico" class="block text-sm font-medium text-gray-700">Pico (cmH₂O)</label>
+                        <input type="number" id="pico" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="plateau" class="block text-sm font-medium text-gray-700">Plateau (cmH₂O)</label>
+                        <input type="number" id="plateau" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="peep_mon" class="block text-sm font-medium text-gray-700">PEEP Mon. (cmH₂O)</label>
+                        <input type="number" id="peep_mon" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="vt" class="block text-sm font-medium text-gray-700">VT (L)</label>
+                        <input type="number" step="0.01" id="vt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="ve" class="block text-sm font-medium text-gray-700">VE (L/min)</label>
+                        <input type="number" step="0.1" id="ve" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="col-span-3">
+                         <label for="modo" class="block text-sm font-medium text-gray-700">Modo Ventilatorio</label>
+                         <div class="flex items-center space-x-2">
+                            <input type="text" id="modo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Ej: VCV, PCV...">
+                            <button type="button" id="learnModeButton" class="p-2 mt-1 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Aprender más sobre este modo">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4 0 2.21-1.79 4-4 4-1.742 0-3.223-.835-3.772-2M12 18v-2M12 6V4" /></svg>
+                            </button>
+                         </div>
+                    </div>
+                </form>
+                <button id="saveButton" class="mt-6 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center disabled:bg-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    Guardar Registro
+                </button>
+                <div class="mt-4 border-t pt-4">
+                    <h3 class="text-lg font-medium text-center text-gray-700 mb-2">Asistente IA</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button id="analysisButton" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition duration-300 flex items-center justify-center disabled:bg-gray-400">✨ Análisis Clínico</button>
+                        <button id="weaningButton" class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition duration-300 flex items-center justify-center disabled:bg-gray-400">✨ Evaluar Weaning</button>
+                        <button id="noteButton" class="col-span-1 sm:col-span-2 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition duration-300 flex items-center justify-center disabled:bg-gray-400">✨ Generar Nota de Evolución</button>
+                    </div>
                 </div>
+            </div>
         </div>
 
-        <div class="hidden mt-8 bg-white p-6 rounded-2xl shadow-lg">
-             <h2 class="text-2xl font-semibold">Asistente Kinesiológico ✨</h2>
-             </div>
+        <div id="assistantSection" class="hidden mt-8 bg-white p-6 rounded-2xl shadow-lg">
+            <div class="flex justify-between items-center">
+                <h2 id="assistantTitle" class="text-2xl font-semibold">Asistente Kinesiológico ✨</h2>
+                <button id="copyAssistantButton" class="bg-gray-200 text-gray-700 font-bold py-2 px-3 rounded-lg hover:bg-gray-300 transition duration-300 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    Copiar
+                </button>
+            </div>
+            <div id="assistantLoader" class="hidden mt-4 flex justify-center items-center space-x-2">
+                <div class="spinner"></div>
+                <span class="text-gray-600">Generando respuesta...</span>
+            </div>
+            <div id="assistantOutput" class="prose prose-sm md:prose-base max-w-none text-gray-800 mt-4"></div>
+        </div>
 
         <div class="mt-10 bg-white p-6 rounded-2xl shadow-lg">
-            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Registros Históricos</h2>
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-2xl font-semibold">Registros Históricos</h2>
+                <button id="exportButton" class="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition duration-300 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exportar a CSV
+                </button>
             </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modo</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PEEP Prog.</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">FiO₂ Prog.</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">FR Prog.</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">FR Total</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pico</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VT</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script type="module">
+        // --- IMPORTACIONES DE FIREBASE ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // =======================================================================
+        // PASO IMPORTANTE: CONFIGURACIÓN DE FIREBASE
+        // =======================================================================
+        // En un paso más adelante, crearás un proyecto en Firebase.
+        // Firebase te dará un código como este. Deberás reemplazar este
+        // bloque de ejemplo con el código que te de Firebase.
+        const firebaseConfig = {
+          apiKey: "AIzaSy...xxxxxxxxxxxxxxxxxxx", // Reemplazar con tu clave
+          authDomain: "tu-proyecto.firebaseapp.com", // Reemplazar
+          projectId: "tu-proyecto", // Reemplazar
+          storageBucket: "tu-proyecto.appspot.com", // Reemplazar
+          messagingSenderId: "1234567890", // Reemplazar
+          appId: "1:1234567890:web:abcdef123456" // Reemplazar
+        };
+        // =======================================================================
+
+        // --- REFERENCIAS A ELEMENTOS DEL DOM ---
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const processButton = document.getElementById('processButton');
+        const saveButton = document.getElementById('saveButton');
+        const exportButton = document.getElementById('exportButton');
+        const dataForm = document.getElementById('dataForm');
+        const dataTableBody = document.getElementById('dataTableBody');
+        const loader = document.getElementById('loader');
+        const toast = document.getElementById('toast');
+        const analysisButton = document.getElementById('analysisButton');
+        const noteButton = document.getElementById('noteButton');
+        const weaningButton = document.getElementById('weaningButton');
+        const learnModeButton = document.getElementById('learnModeButton');
+        const assistantSection = document.getElementById('assistantSection');
+        const assistantTitle = document.getElementById('assistantTitle');
+        const assistantLoader = document.getElementById('assistantLoader');
+        const assistantOutput = document.getElementById('assistantOutput');
+        const copyAssistantButton = document.getElementById('copyAssistantButton');
+        const configAlert = document.getElementById('firebase-config-alert');
+        let base64ImageData = null;
+
+        // --- LÓGICA DE INICIALIZACIÓN ---
+        // Comprueba si la configuración de Firebase es la de ejemplo.
+        if (firebaseConfig.apiKey.startsWith("AIzaSy...")) {
+            // Muestra la alerta y deshabilita los botones de la base de datos.
+            configAlert.classList.remove('hidden');
+            saveButton.disabled = true;
+            exportButton.disabled = true;
+            saveButton.title = "Configura Firebase para guardar datos";
+            exportButton.title = "Configura Firebase para exportar datos";
+            document.querySelectorAll('.edit-btn, .delete-btn').forEach(b => b.disabled = true);
+        } else {
+            // Si la configuración es válida, inicializa Firebase.
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const auth = getAuth(app);
+
+                let userId = null;
+                let recordsCollection;
+
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        userId = user.uid;
+                        recordsCollection = collection(db, `kinevent-users/${userId}/records`);
+                        loadRecords(recordsCollection); // Pasa la colección como argumento
+
+                        // Asigna los listeners a los botones que dependen de Firebase
+                        saveButton.addEventListener('click', () => handleSave(recordsCollection));
+                        dataTableBody.addEventListener('click', (e) => handleTableClick(e, db, userId));
+                        exportButton.addEventListener('click', () => handleExport(recordsCollection));
+                    } else {
+                        signInAnonymously(auth).catch(error => {
+                            console.error("Error al iniciar sesión anónimamente:", error);
+                            showToast("Error de autenticación. La app no funcionará correctamente.", "error");
+                        });
+                    }
+                });
+            } catch (e) {
+                console.error("Error al inicializar Firebase. Revisa tu configuración.", e);
+                configAlert.classList.remove('hidden');
+                configAlert.innerHTML = '<p class="font-bold">Error en la configuración de Firebase.</p><p>Revisa que las claves que pegaste sean correctas.</p>';
+            }
+        }
+
+        // --- El resto del código que hace funcionar la app ---
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    base64ImageData = e.target.result.split(',')[1];
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        processButton.addEventListener('click', async () => {
+            if (!base64ImageData) { showToast("Por favor, selecciona una imagen primero.", "error"); return; }
+            loader.classList.remove('hidden');
+            processButton.disabled = true;
+            const prompt = `Analiza la imagen de un monitor de ventilador Neumovent. Extrae los siguientes parámetros y devuélvelos en formato JSON. Diferencia claramente entre parámetros PROGRAMADOS (barra inferior) y MONITOREADOS (barra superior y columna izquierda). Los parámetros son: modo, peep_prog, fio2_prog, fr_prog, fr_total, pico, plateau, peep_mon, vt, ve. Si un valor no es visible, devuélvelo como null.`;
+            const payload = { contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64ImageData } }] }], generation_config: { "response_mime_type": "application/json" } };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`Error de la API: ${response.statusText}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    const data = JSON.parse(text);
+                    populateForm(data);
+                    showToast("Datos extraídos correctamente. Por favor, verifícalos.", "success");
+                } else { throw new Error("No se encontraron candidatos en la respuesta de la API."); }
+            } catch (error) {
+                console.error("Error al procesar la imagen:", error);
+                showToast("Error al extraer los datos. Inténtalo de nuevo.", "error");
+            } finally {
+                loader.classList.add('hidden');
+                processButton.disabled = false;
+            }
+        });
+
+        analysisButton.addEventListener('click', () => generateAIAssistance('analysis'));
+        noteButton.addEventListener('click', () => generateAIAssistance('note'));
+        weaningButton.addEventListener('click', () => generateAIAssistance('weaning'));
+        learnModeButton.addEventListener('click', () => generateAIAssistance('learn'));
+
+        async function generateAIAssistance(type) {
+            const data = getFormData();
+            let prompt = '';
+            let title = 'Asistente Kinesiológico ✨';
+            if (type === 'learn') {
+                const mode = data.modo;
+                if (!mode) { showToast("Escribe un modo ventilatorio para aprender sobre él.", "error"); return; }
+                title = `Aprendiendo sobre: ${mode}`;
+                prompt = `Eres un educador clínico experto. Explica el modo ventilatorio "${mode}" de forma clara y concisa para un kinesiólogo. Cubre en una lista: 1. Descripción, 2. Indicaciones, 3. Ventajas, 4. Desventajas.`;
+            } else {
+                if (!data.modo || data.peep_prog === null) { showToast("Completa al menos Modo y PEEP Programada.", "error"); return; }
+                if (type === 'analysis') {
+                    title = 'Análisis Clínico';
+                    prompt = `Eres un kinesiólogo experto en UTI. Basado en estos datos de VM, da un análisis clínico breve en español (3-4 puntos clave). Datos: ${JSON.stringify(data)}. Diferencia programado vs. monitoreado.`;
+                } else if (type === 'note') {
+                    title = 'Nota de Evolución';
+                    prompt = `Eres un kinesiólogo de UTI. Genera una nota de evolución profesional en español con estos datos: ${JSON.stringify(data)}. Formato: "Paciente bajo VM en modo [Modo]. Parámetros: [listar datos]. Impresión: [evaluación]. Plan: [sugerencias]".`;
+                } else if (type === 'weaning') {
+                    title = 'Evaluación de Weaning';
+                    prompt = `Eres un kinesiólogo intensivista. Evalúa si un paciente es candidato a PVE con estos datos: ${JSON.stringify(data)}. Criterios: FiO2 <= 50%, PEEP <= 8, estabilidad. Da una recomendación (Candidato, No, Dudoso) y justifícala.`;
+                }
+            }
+            assistantSection.classList.remove('hidden');
+            assistantTitle.textContent = title + ' ✨';
+            assistantLoader.classList.remove('hidden');
+            assistantOutput.innerHTML = '';
+            [analysisButton, noteButton, weaningButton, learnModeButton].forEach(btn => btn.disabled = true);
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`Error de la API: ${response.statusText}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    let htmlText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>').replace(/\* /g, '<br>• ');
+                    assistantOutput.innerHTML = htmlText;
+                } else { throw new Error("No se recibió contenido de la API."); }
+            } catch (error) {
+                console.error("Error en la asistencia de IA:", error);
+                assistantOutput.innerHTML = `<p class="text-red-500">Hubo un error al generar la respuesta.</p>`;
+            } finally {
+                assistantLoader.classList.add('hidden');
+                [analysisButton, noteButton, weaningButton, learnModeButton].forEach(btn => btn.disabled = false);
+            }
+        }
+
+        copyAssistantButton.addEventListener('click', () => {
+            const textToCopy = assistantOutput.innerText;
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Texto copiado.', 'success');
+            } catch (err) {
+                showToast('No se pudo copiar.', 'error');
+            }
+            document.body.removeChild(textArea);
+        });
+
+        function populateForm(data) {
+            dataForm.reset();
+            document.getElementById('recordId').value = '';
+            if (!data) return;
+            for (const key in data) {
+                if (document.getElementById(key)) {
+                    document.getElementById(key).value = data[key] || '';
+                }
+            }
+        }
+
+        function getFormData() {
+            return {
+                patientId: document.getElementById('patientId').value.trim(),
+                modo: document.getElementById('modo').value.trim(),
+                peep_prog: Number(document.getElementById('peep_prog').value) || null,
+                fio2_prog: Number(document.getElementById('fio2_prog').value) || null,
+                fr_prog: Number(document.getElementById('fr_prog').value) || null,
+                fr_total: Number(document.getElementById('fr_total').value) || null,
+                pico: Number(document.getElementById('pico').value) || null,
+                plateau: Number(document.getElementById('plateau').value) || null,
+                peep_mon: Number(document.getElementById('peep_mon').value) || null,
+                vt: Number(document.getElementById('vt').value) || null,
+                ve: Number(document.getElementById('ve').value) || null,
+            };
+        }
+
+        async function handleSave(recordsCollection) {
+            if (!recordsCollection) return;
+            const patientId = document.getElementById('patientId').value.trim();
+            if (!patientId) { showToast("El ID del Paciente es obligatorio.", "error"); return; }
+            const dataToSave = getFormData();
+            dataToSave.createdAt = serverTimestamp();
+            const recordId = document.getElementById('recordId').value;
+            saveButton.disabled = true;
+            try {
+                if (recordId) {
+                    const docRef = doc(db, `kinevent-users/${recordsCollection.parent.id}/records`, recordId);
+                    await updateDoc(docRef, dataToSave);
+                    showToast("Registro actualizado.", "success");
+                } else {
+                    await addDoc(recordsCollection, dataToSave);
+                    showToast("Registro guardado.", "success");
+                }
+                dataForm.reset();
+                document.getElementById('recordId').value = '';
+            } catch (error) {
+                console.error("Error al guardar:", error);
+                showToast("Error al guardar.", "error");
+            } finally {
+                saveButton.disabled = false;
+            }
+        }
+
+        function loadRecords(recordsCollection) {
+            if (!recordsCollection) return;
+            onSnapshot(recordsCollection, (snapshot) => {
+                const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                records.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+                dataTableBody.innerHTML = '';
+                records.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.dataset.record = JSON.stringify(record);
+                    row.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${record.createdAt ? new Date(record.createdAt.seconds * 1000).toLocaleString('es-AR') : 'N/A'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${record.patientId || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.modo || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.peep_prog || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.fio2_prog || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.fr_prog || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.fr_total || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.pico || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${record.vt || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                            <button class="edit-btn text-indigo-600 hover:text-indigo-900" data-id="${record.id}">Editar</button>
+                            <button class="delete-btn text-red-600 hover:text-red-900 ml-4" data-id="${record.id}">Borrar</button>
+                        </td>
+                    `;
+                    dataTableBody.appendChild(row);
+                });
+            });
+        }
+
+        async function handleTableClick(e, db, userId) {
+            const target = e.target;
+            const id = target.dataset.id;
+            if (!id || !userId) return;
+            if (target.classList.contains('delete-btn')) {
+                if (window.confirm('¿Estás seguro de que quieres borrar este registro?')) {
+                    try {
+                        await deleteDoc(doc(db, `kinevent-users/${userId}/records`, id));
+                        showToast("Registro borrado.", "success");
+                    } catch (error) { console.error("Error al borrar:", error); showToast("Error al borrar.", "error"); }
+                }
+            } else if (target.classList.contains('edit-btn')) {
+                const recordData = JSON.parse(target.closest('tr').dataset.record);
+                populateForm(recordData);
+                document.getElementById('recordId').value = id;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        async function handleExport(recordsCollection) {
+            if (!recordsCollection) return;
+            const querySnapshot = await getDocs(recordsCollection);
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = ["Fecha", "Paciente", "Modo", "PEEP_Prog", "FiO2_Prog", "FR_Prog", "FR_Total", "Pico", "Plateau", "PEEP_Mon", "VT", "VE"];
+            csvContent += headers.join(",") + "\r\n";
+            querySnapshot.forEach(doc => {
+                const record = doc.data();
+                const row = [
+                    record.createdAt ? new Date(record.createdAt.seconds * 1000).toLocaleString('es-AR') : '',
+                    `"${record.patientId || ''}"`, `"${record.modo || ''}"`,
+                    record.peep_prog || '', record.fio2_prog || '', record.fr_prog || '', record.fr_total || '',
+                    record.pico || '', record.plateau || '', record.peep_mon || '', record.vt || '', record.ve || ''
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "kinevent_registros.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = 'toast show';
+            toast.style.backgroundColor = '';
+            if (type === 'success') { toast.style.backgroundColor = '#28a745'; } 
+            else if (type === 'error') { toast.style.backgroundColor = '#dc3545'; } 
+            else { toast.style.backgroundColor = '#333'; }
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+    </script>
 
     <script>
         if ('serviceWorker' in navigator) {
