@@ -5,7 +5,10 @@ const urlsToCache = [
   '/kinevent-logger/index.html',
   '/kinevent-logger/manifest.json',
   'https://cdn.tailwindcss.com/',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+  'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'
 ];
 
 // Evento de instalación: se abre el caché y se guardan los archivos.
