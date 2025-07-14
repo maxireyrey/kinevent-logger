@@ -22,9 +22,6 @@
         .btn-secondary:hover { background-color: #5a6268; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 50; }
-        .modal-content { background-color: white; padding: 2rem; border-radius: 0.75rem; max-width: 95%; width: 600px; }
-        .input-field { width: 100%; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; }
         .tab-button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; cursor: pointer; border: 2px solid transparent; }
         .tab-button.active { color: #007bff; border-color: #007bff; background-color: #e7f3ff; }
     </style>
@@ -32,7 +29,7 @@
 <body class="p-4 md:p-8">
 
     <!-- Main App Content -->
-    <div id="app" class="max-w-7xl mx-auto space-y-8 hidden">
+    <div id="app" class="max-w-7xl mx-auto space-y-8">
         <header class="card p-6 text-center">
             <h1 class="text-3xl font-bold text-gray-800">Kinevent Logger</h1>
             <p class="text-gray-600 mt-2">Analizá la pantalla del ventilador y gestioná los datos de tus pacientes.</p>
@@ -104,41 +101,37 @@
         </div>
     </div>
 
-    <!-- Setup Modal -->
-    <div id="setupModal" class="modal-backdrop hidden">
-        <div class="modal-content">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Configuración Inicial</h2>
-            <p class="text-gray-600 mb-6">Para usar la base de datos colaborativa, necesitás conectar la app a un proyecto de Firebase.</p>
-            <div>
-                <label for="firebaseConfigInput" class="font-semibold text-gray-700">Configuración de Firebase</label>
-                <p class="text-sm text-gray-500 mb-1">Creá un proyecto en <a href="https://firebase.google.com/" target="_blank" class="text-blue-600 hover:underline">Firebase</a>, activá Firestore y Authentication (Anónimo), y pegá aquí el objeto de configuración.</p>
-                <textarea id="firebaseConfigInput" rows="8" class="input-field font-mono text-sm" placeholder="Pegá el objeto de configuración de Firebase aquí..."></textarea>
-            </div>
-            <div id="configError" class="text-red-600 mt-4 hidden"></div>
-            <div class="mt-6 flex justify-end">
-                <button id="saveConfigButton" class="btn btn-primary">Guardar y Empezar</button>
-            </div>
-        </div>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, onSnapshot, collection, deleteDoc, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // =================================================================================
+        // --- CONFIGURACIÓN DE FIREBASE (INTEGRADA) ---
+        // =================================================================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyDEUI7-IGwVc-qUfp6TW5Fgx1wV_1GEsDg",
+          authDomain: "kinevent-logger.firebaseapp.com",
+          projectId: "kinevent-logger",
+          storageBucket: "kinevent-logger.appspot.com", // CORREGIDO
+          messagingSenderId: "667092339870",
+          appId: "1:667092339870:web:9caa108cae9c71c28d7f8f",
+          measurementId: "G-0F2HHS59ZJ"
+        };
+        // =================================================================================
+        // --- FIN DE LA CONFIGURACIÓN ---
+        // =================================================================================
+
+
         // --- GLOBAL VARIABLES ---
         let db, auth, userId;
         let extractedData = null;
         let allDbData = [];
-        const APP_ID = 'kinevent-logger'; // UPDATED: Project Name
+        const APP_ID = 'kinevent-logger';
 
         // --- UI ELEMENTS ---
         const ui = {
             app: document.getElementById('app'),
-            setupModal: document.getElementById('setupModal'),
-            firebaseConfigInput: document.getElementById('firebaseConfigInput'),
-            saveConfigButton: document.getElementById('saveConfigButton'),
-            configError: document.getElementById('configError'),
             uploadButton: document.getElementById('uploadButton'),
             imageUpload: document.getElementById('imageUpload'),
             imagePreviewContainer: document.getElementById('imagePreviewContainer'),
@@ -166,47 +159,14 @@
         // --- PWA Service Worker Registration ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('./sw.js') // Use relative path for GitHub Pages
                     .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
                     .catch(err => console.log('ServiceWorker registration failed: ', err));
             });
         }
 
-        // --- CONFIGURATION & INITIALIZATION ---
-        function checkConfig() {
-            const storedConfig = localStorage.getItem('ventilatorFirebaseConfig');
-            if (storedConfig) {
-                try {
-                    initApp(JSON.parse(storedConfig));
-                } catch (e) {
-                    showSetupModal();
-                }
-            } else {
-                showSetupModal();
-            }
-        }
-
-        function showSetupModal() {
-            ui.setupModal.classList.remove('hidden');
-            ui.firebaseConfigInput.value = localStorage.getItem('ventilatorFirebaseConfig') || '';
-        }
-
-        function saveConfig() {
-            const configValue = ui.firebaseConfigInput.value.trim();
-            try {
-                const parsedConfig = JSON.parse(configValue);
-                if (!parsedConfig.apiKey || !parsedConfig.projectId) throw new Error("Configuración incompleta.");
-                localStorage.setItem('ventilatorFirebaseConfig', configValue);
-                initApp(parsedConfig);
-            } catch (e) {
-                ui.configError.textContent = 'Formato de configuración de Firebase inválido.';
-                ui.configError.classList.remove('hidden');
-            }
-        }
-
-        function initApp(firebaseConfig) {
-            ui.setupModal.classList.add('hidden');
-            ui.app.classList.remove('hidden');
+        // --- APP INITIALIZATION ---
+        function initApp() {
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -220,9 +180,9 @@
                     }
                 });
             } catch (error) {
-                showSetupModal();
-                ui.configError.textContent = `Error de Firebase: ${error.message}`;
-                ui.configError.classList.remove('hidden');
+                console.error("Firebase initialization failed:", error);
+                alert(`Error crítico al inicializar Firebase: ${error.message}`);
+                document.body.innerHTML = '<div class="p-8 text-center text-red-600 bg-red-100"><h1>Error de Conexión</h1><p>No se pudo conectar a la base de datos. Verifique la consola para más detalles.</p></div>';
             }
         }
 
@@ -290,7 +250,6 @@
         }
 
         // --- EVENT HANDLERS ---
-        ui.saveConfigButton.addEventListener('click', saveConfig);
         ui.uploadButton.addEventListener('click', () => ui.imageUpload.click());
         ui.imageUpload.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -384,7 +343,7 @@
         }
 
         // --- START THE APP ---
-        window.onload = checkConfig;
+        window.onload = initApp;
     </script>
 </body>
 </html>
