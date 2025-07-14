@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistente Ventilatorio</title>
+    <title>Kinevent Logger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -34,7 +34,7 @@
     <!-- Main App Content -->
     <div id="app" class="max-w-7xl mx-auto space-y-8 hidden">
         <header class="card p-6 text-center">
-            <h1 class="text-3xl font-bold text-gray-800">Asistente de Datos Ventilatorios</h1>
+            <h1 class="text-3xl font-bold text-gray-800">Kinevent Logger</h1>
             <p class="text-gray-600 mt-2">Analizá la pantalla del ventilador y gestioná los datos de tus pacientes.</p>
         </header>
 
@@ -130,7 +130,7 @@
         let db, auth, userId;
         let extractedData = null;
         let allDbData = [];
-        const APP_ID = 'neumovent_data_collector_v1'; // Unique ID for this app's data
+        const APP_ID = 'kinevent-logger'; // UPDATED: Project Name
 
         // --- UI ELEMENTS ---
         const ui = {
@@ -351,7 +351,7 @@
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.setAttribute("href", URL.createObjectURL(blob));
-            link.setAttribute("download", `datos_ventilatorios_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute("download", `kinevent_logger_data_${new Date().toISOString().split('T')[0]}.csv`);
             link.click();
         });
 
