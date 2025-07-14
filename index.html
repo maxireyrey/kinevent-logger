@@ -3,421 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kinevent Logger</title>
+    <title>Extractor de Parámetros Ventilatorios</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007bff">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
-        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .btn { padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600; transition: all 0.3s; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-primary { background-color: #007bff; color: white; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .btn-secondary { background-color: #6c757d; color: white; }
-        .btn-secondary:hover { background-color: #5a6268; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .tab-button { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500; cursor: pointer; border: 2px solid transparent; }
-        .tab-button.active { color: #007bff; border-color: #007bff; background-color: #e7f3ff; }
-        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 50; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
-        .modal-backdrop.visible { opacity: 1; visibility: visible; }
-        .modal-content { background-color: white; padding: 1.5rem; border-radius: 0.75rem; max-width: 95%; width: 700px; transform: scale(0.95); transition: transform 0.3s ease; }
-        .modal-backdrop.visible .modal-content { transform: scale(1); }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn-primary {
+            @apply bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center;
+        }
+        .btn-secondary {
+            @apply bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-all duration-300;
+        }
+         .btn-success {
+            @apply bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed;
+        }
+        .card {
+            @apply bg-white p-6 rounded-xl shadow-lg border border-gray-200;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="bg-gray-50 p-4 sm:p-6 lg:p-8">
 
-    <!-- Main App Content -->
-    <div id="app" class="max-w-7xl mx-auto space-y-8">
-        <header class="card p-6">
-             <div class="flex justify-between items-start">
-                <div class="text-center flex-grow">
-                    <h1 class="text-3xl font-bold text-gray-800">Kinevent Logger</h1>
-                    <p class="text-gray-600 mt-2">Analizá la pantalla del ventilador y gestioná los datos de tus pacientes.</p>
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Extractor de Parámetros Ventilatorios</h1>
+            <p class="text-gray-600 mt-2 text-lg">Sube una foto del monitor Neumovent, extrae los datos y guarda un historial clínico.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Columna de Carga y Visualización -->
+            <div class="card fade-in">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">1. Cargar Imagen</h2>
+                <div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <input type="file" id="imageUpload" class="hidden" accept="image/*">
+                    <label for="imageUpload" class="cursor-pointer">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-blue-500 mb-3"></i>
+                        <p class="text-gray-700 font-semibold">Haz clic para seleccionar una imagen</p>
+                        <p id="fileName" class="text-sm text-gray-500 mt-1">No se ha seleccionado archivo</p>
+                    </label>
                 </div>
-                <button id="helpButton" class="btn btn-secondary !p-2" title="Guía Visual">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+
+                <div id="imagePreviewContainer" class="mt-6 hidden">
+                    <h3 class="font-semibold text-lg mb-2">Vista Previa:</h3>
+                    <img id="imagePreview" src="#" alt="Vista previa de la imagen" class="w-full rounded-lg shadow-md"/>
+                </div>
+                
+                <button id="processButton" class="btn-primary w-full mt-6" disabled>
+                    <span id="buttonText"><i class="fas fa-cogs mr-2"></i>Procesar Imagen</span>
+                    <div id="buttonLoader" class="loader hidden"></div>
                 </button>
             </div>
-        </header>
 
-        <!-- Step 1: Image Upload -->
-        <div class="card p-6">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Paso 1: Cargar Foto del Ventilador</h2>
-            <div class="flex flex-col items-center">
-                <input type="file" id="imageUpload" accept="image/*" class="hidden">
-                <button id="uploadButton" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                    Seleccionar Foto
-                </button>
-                <div id="imagePreviewContainer" class="mt-4 hidden"><img id="imagePreview" class="max-w-xs max-h-64 rounded-lg shadow-md" alt="Vista previa"></div>
+            <!-- Columna de Resultados -->
+            <div class="card fade-in">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">2. Resultados Extraídos</h2>
+                
+                <div id="errorNotification" class="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-center hidden fade-in">
+                    <i class="fas fa-exclamation-triangle mr-2"></i><span id="errorMessage"></span>
+                </div>
+                
+                <div class="mb-4">
+                     <label for="patientId" class="block text-sm font-medium text-gray-700 mb-1">ID Paciente (Opcional)</label>
+                     <input type="text" id="patientId" class="w-full p-2 bg-white rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ej: Cama 5, HNC-123">
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-semibold text-lg text-gray-600">Parámetros Programados</h3>
+                        <button id="copyProgrammed" class="btn-secondary"><i class="far fa-copy mr-1"></i> Copiar</button>
+                    </div>
+                    <textarea id="programmedParams" rows="5" class="w-full p-3 bg-gray-100 rounded-md border" readonly placeholder="Los parámetros programados aparecerán aquí..."></textarea>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-semibold text-lg text-gray-600">Parámetros del Paciente</h3>
+                        <button id="copyMonitored" class="btn-secondary"><i class="far fa-copy mr-1"></i> Copiar</button>
+                    </div>
+                    <textarea id="monitoredParams" rows="5" class="w-full p-3 bg-gray-100 rounded-md border" readonly placeholder="Los parámetros monitorizados aparecerán aquí..."></textarea>
+                </div>
+                 <div id="copyNotification" class="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-center hidden fade-in"></div>
+                 <button id="saveButton" class="btn-success w-full mt-6" disabled><i class="fas fa-save mr-2"></i>Guardar en Historial</button>
             </div>
         </div>
-
-        <!-- Step 2: Review Extracted Data -->
-        <div id="analysisSection" class="card p-6 hidden">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Paso 2: Datos Extraídos</h2>
-            <div id="loader" class="flex justify-center items-center py-8 hidden"><div class="loader"></div><p class="ml-4 text-gray-600">Analizando imagen con IA...</p></div>
-            
-            <div id="analysisResult" class="hidden">
-                <!-- Tabs -->
-                <div class="mb-4 border-b border-gray-200">
-                    <nav class="flex space-x-4" aria-label="Tabs">
-                        <button id="tabEvo" class="tab-button active">Para la Evolución (Copiar y Pegar)</button>
-                        <button id="tabDb" class="tab-button">Para Base de Datos (Revisar y Guardar)</button>
-                    </nav>
-                </div>
-
-                <!-- Tab Content -->
-                <div id="contentEvo" class="">
-                    <h3 class="font-semibold text-lg mb-2">Texto para la Evolución Clínica</h3>
-                    <p class="text-sm text-gray-500 mb-2">Hacé clic en el texto para copiarlo al portapapeles.</p>
-                    <textarea id="evolutionCopyArea" readonly class="w-full h-48 p-3 font-mono text-sm bg-gray-100 rounded-md border border-gray-300 cursor-pointer focus:ring-2 focus:ring-blue-500"></textarea>
-                    <p id="copyFeedback" class="text-sm text-green-600 mt-2 h-4"></p>
-                </div>
-
-                <div id="contentDb" class="hidden">
-                    <h3 class="font-semibold text-lg mb-2">Revisar Datos para Guardar</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><h4 class="font-semibold text-indigo-700 mb-2">Parámetros Programados</h4><div id="programmedParams" class="space-y-2"></div></div>
-                        <div><h4 class="font-semibold text-teal-700 mb-2">Parámetros del Paciente</h4><div id="patientParams" class="space-y-2"></div></div>
-                    </div>
-                    <div class="mt-6 flex justify-end">
-                        <button id="saveButton" class="btn btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6a1 1 0 10-2 0v5.586L7.707 10.293zM5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5z" /></svg>
-                            Guardar en Base de Datos
-                        </button>
-                    </div>
-                </div>
-            </div>
-             <div id="analysisError" class="hidden text-center text-red-600 bg-red-100 p-4 rounded-md"><p>No se pudieron extraer los datos. Intentá con una imagen más clara.</p></div>
-        </div>
-
-        <!-- Step 3: Collaborative Database -->
-        <div class="card p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-700">Base de Datos de Investigación</h2>
-                <button id="exportCsvButton" class="btn btn-secondary">Exportar a CSV</button>
-            </div>
-            <div id="dbLoader" class="flex justify-center items-center py-8"><div class="loader"></div><p class="ml-4 text-gray-600">Cargando base de datos...</p></div>
-            <div id="dbContent" class="overflow-x-auto hidden">
-                <table class="min-w-full bg-white"><thead class="bg-gray-50"><tr><th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th><th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modo</th><th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programado</th><th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th><th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th></tr></thead><tbody id="dataTableBody" class="bg-white divide-y divide-gray-200"></tbody></table>
-                <p id="noDataMessage" class="text-center text-gray-500 py-8 hidden">Aún no hay datos.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Help Modal -->
-    <div id="helpModal" class="modal-backdrop">
-        <div class="modal-content">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Guía Visual de Pantalla (Tecme)</h2>
-            <p class="text-gray-600 mb-6">Este es un esquema de la disposición típica de los parámetros en los ventiladores Tecme (ej. GraphNet). Usalo como referencia para encontrar los datos en la pantalla.</p>
-            
-            <div class="bg-gray-800 text-white p-2 rounded-lg">
-                <!-- Screen Layout -->
-                <div class="border-2 border-dashed border-gray-500 rounded-md p-2 space-y-2">
-                    <!-- Monitored Top -->
-                    <div class="border border-yellow-400 p-2 rounded-md">
-                        <p class="font-bold text-yellow-400 text-center">PARÁMETROS MONITORIZADOS (ARRIBA)</p>
-                        <p class="text-sm text-gray-300 text-center">Flujo Pico, Ti, Te, Rel I:E, FR Total, VTe, VMe, %O2</p>
-                    </div>
-                    <div class="flex space-x-2 h-64">
-                        <!-- Monitored Left -->
-                        <div class="w-1/4 border border-green-400 p-2 rounded-md flex flex-col justify-around">
-                             <p class="font-bold text-green-400 text-center">PRESIONES MONITORIZADAS (IZQUIERDA)</p>
-                             <p class="text-sm text-gray-300 text-center">Pico, Plateau, Media, PEEP</p>
-                        </div>
-                        <!-- Graphs -->
-                        <div class="w-3/4 border border-gray-500 p-2 rounded-md flex items-center justify-center">
-                            <p class="text-gray-400 text-lg">Área de Gráficos</p>
-                        </div>
-                    </div>
-                     <!-- Programmed Bottom -->
-                    <div class="border border-blue-400 p-2 rounded-md">
-                        <p class="font-bold text-blue-400 text-center">PARÁMETROS PROGRAMADOS (ABAJO)</p>
-                        <p class="text-sm text-gray-300 text-center">Modo, VT/PC, PEEP, FR, FiO2, T insp, etc.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-6 flex justify-end">
-                <button id="closeHelpModalButton" class="btn btn-primary">Entendido</button>
+        
+        <!-- Sección de Historial -->
+        <div class="card fade-in">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">3. Historial de Registros</h2>
+            <div id="historyContainer" class="space-y-4">
+                <p id="historyPlaceholder" class="text-gray-500 text-center py-8">Aún no hay registros guardados. Procesa una imagen y guarda los resultados para verlos aquí.</p>
+                <!-- Los registros del historial se insertarán aquí -->
             </div>
         </div>
     </div>
 
     <script type="module">
+        // Importar funciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, onSnapshot, collection, deleteDoc, setLogLevel, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // =================================================================================
-        // --- CONFIGURACIÓN DE FIREBASE (INTEGRADA) ---
-        // =================================================================================
-        const firebaseConfig = {
-          apiKey: "AIzaSyDEUI7-IGwVc-qUfp6TW5Fgx1wV_1GEsDg",
-          authDomain: "kinevent-logger.firebaseapp.com",
-          projectId: "kinevent-logger",
-          storageBucket: "kinevent-logger.appspot.com",
-          messagingSenderId: "667092339870",
-          appId: "1:667092339870:web:9caa108cae9c71c28d7f8f",
-          measurementId: "G-0F2HHS59ZJ"
-        };
-        // =================================================================================
-        // --- FIN DE LA CONFIGURACIÓN ---
-        // =================================================================================
-
-
-        // --- GLOBAL VARIABLES ---
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
         let db, auth, userId;
-        let extractedData = null;
-        let allDbData = [];
-        const APP_ID = 'kinevent-logger';
+        let unsubscribeHistory = null; // Para detener el listener de Firestore
 
-        // --- UI ELEMENTS ---
-        const ui = {
-            app: document.getElementById('app'),
-            uploadButton: document.getElementById('uploadButton'),
-            imageUpload: document.getElementById('imageUpload'),
-            imagePreviewContainer: document.getElementById('imagePreviewContainer'),
-            imagePreview: document.getElementById('imagePreview'),
-            analysisSection: document.getElementById('analysisSection'),
-            loader: document.getElementById('loader'),
-            analysisResult: document.getElementById('analysisResult'),
-            analysisError: document.getElementById('analysisError'),
-            tabEvo: document.getElementById('tabEvo'),
-            tabDb: document.getElementById('tabDb'),
-            contentEvo: document.getElementById('contentEvo'),
-            contentDb: document.getElementById('contentDb'),
-            evolutionCopyArea: document.getElementById('evolutionCopyArea'),
-            copyFeedback: document.getElementById('copyFeedback'),
-            programmedParams: document.getElementById('programmedParams'),
-            patientParams: document.getElementById('patientParams'),
-            saveButton: document.getElementById('saveButton'),
-            dbLoader: document.getElementById('dbLoader'),
-            dbContent: document.getElementById('dbContent'),
-            dataTableBody: document.getElementById('dataTableBody'),
-            noDataMessage: document.getElementById('noDataMessage'),
-            exportCsvButton: document.getElementById('exportCsvButton'),
-            helpButton: document.getElementById('helpButton'),
-            helpModal: document.getElementById('helpModal'),
-            closeHelpModalButton: document.getElementById('closeHelpModalButton'),
-        };
-
-        // --- PWA Service Worker Registration ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js') // Use relative path for GitHub Pages
-                    .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
-                    .catch(err => console.log('ServiceWorker registration failed: ', err));
-            });
-        }
-
-        // --- APP INITIALIZATION ---
-        function initApp() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                onAuthStateChanged(auth, user => {
-                    if (user) {
-                        userId = user.uid;
-                        setupRealtimeListener();
-                    } else {
-                        // User is not signed in, attempt anonymous sign-in
-                        signInAnonymously(auth).catch(error => {
-                            console.error("Anonymous sign-in failed:", error);
-                            // Provide specific feedback for the most common error
-                            if (error.code === 'auth/configuration-not-found') {
-                                alert("ERROR DE CONFIGURACIÓN: No se pudo iniciar sesión anónima. Por favor, andá a tu proyecto de Firebase -> Authentication -> Sign-in method y asegurate de que el proveedor 'Anónimo' esté HABILITADO.");
-                            } else {
-                                alert(`Error de autenticación: ${error.message}`);
-                            }
-                            // Display a persistent error message on the page
-                            document.body.innerHTML = '<div class="p-8 text-center text-red-600 bg-red-100"><h1>Error de Autenticación</h1><p>No se pudo iniciar sesión en la base de datos. Verifique la consola para más detalles y asegúrese de que el método de inicio de sesión anónimo esté habilitado en su proyecto de Firebase.</p></div>';
-                        });
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                alert(`Error crítico al inicializar Firebase: ${error.message}`);
-                document.body.innerHTML = '<div class="p-8 text-center text-red-600 bg-red-100"><h1>Error de Conexión</h1><p>No se pudo conectar a la base de datos. Verifique la consola para más detalles.</p></div>';
-            }
-        }
-
-        // --- DATABASE & REALTIME LISTENER ---
-        function setupRealtimeListener() {
-            const dataCollection = collection(db, `artifacts/${APP_ID}/public/data/readings`);
-            onSnapshot(dataCollection, snapshot => {
-                ui.dbLoader.classList.add('hidden');
-                ui.dbContent.classList.remove('hidden');
-                allDbData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                allDbData.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-                renderDataTable(allDbData);
-            }, error => {
-                console.error("Error de Firestore:", error);
-                ui.dbLoader.textContent = "Error al cargar datos.";
-            });
-        }
-
-        // --- UI RENDERING ---
-        function renderDataTable(data) {
-            ui.noDataMessage.classList.toggle('hidden', data.length > 0);
-            ui.dataTableBody.innerHTML = '';
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                const timestamp = item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString('es-AR') : 'N/A';
-                const mode = item.programmed_params?.Modo || 'N/A';
-                const progSum = Object.entries(item.programmed_params || {}).filter(([k]) => k !== 'Modo').map(([k, v]) => `${k}: ${v}`).join(', ');
-                const patSum = Object.entries(item.patient_params || {}).map(([k, v]) => `${k}: ${v}`).join(', ');
-                row.innerHTML = `
-                    <td class="p-3 text-sm text-gray-700">${timestamp}</td>
-                    <td class="p-3 text-sm font-semibold text-indigo-600">${mode}</td>
-                    <td class="p-3 text-sm text-gray-700 truncate" style="max-width: 200px;">${progSum || 'N/A'}</td>
-                    <td class="p-3 text-sm text-gray-700 truncate" style="max-width: 200px;">${patSum || 'N/A'}</td>
-                    <td class="p-3 text-sm"><button class="delete-btn text-red-600 hover:text-red-800" data-id='${item.id}'>Borrar</button></td>
-                `;
-                ui.dataTableBody.appendChild(row);
-            });
-        }
-
-        function displayExtractedData(data) {
-            extractedData = data;
-            // Populate "For Evolution" tab
-            let evoText = "Paciente en ARM:\n";
-            if (data.programmed_params) {
-                evoText += "Parámetros programados:\n";
-                for (const [key, value] of Object.entries(data.programmed_params)) {
-                    evoText += `- ${key}: ${value}\n`;
-                }
-            }
-            if (data.patient_params) {
-                evoText += "\nParámetros medidos:\n";
-                 for (const [key, value] of Object.entries(data.patient_params)) {
-                    evoText += `- ${key}: ${value}\n`;
-                }
-            }
-            ui.evolutionCopyArea.value = evoText;
-
-            // Populate "For Database" tab
-            const createParamHTML = (params) => Object.entries(params || {}).map(([key, value]) => `<div class="flex justify-between items-center"><span class="text-gray-600">${key}</span><span class="font-semibold text-gray-800">${value}</span></div>`).join('') || '<p class="text-gray-500">N/A</p>';
-            ui.programmedParams.innerHTML = createParamHTML(data.programmed_params);
-            ui.patientParams.innerHTML = createParamHTML(data.patient_params);
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
             
-            ui.loader.classList.add('hidden');
-            ui.analysisResult.classList.remove('hidden');
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                 await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                 await signInAnonymously(auth);
+            }
+            userId = auth.currentUser.uid;
+            listenToHistory();
+
+        } catch(e) {
+            console.error("Error al inicializar Firebase:", e);
+            showError("No se pudo conectar a la base de datos.");
         }
 
-        // --- EVENT HANDLERS ---
-        ui.helpButton.addEventListener('click', () => ui.helpModal.classList.add('visible'));
-        ui.closeHelpModalButton.addEventListener('click', () => ui.helpModal.classList.remove('visible'));
-        ui.helpModal.addEventListener('click', (e) => {
-            if (e.target === ui.helpModal) {
-                ui.helpModal.classList.remove('visible');
-            }
-        });
+        // --- ELEMENTOS DEL DOM ---
+        const imageUpload = document.getElementById('imageUpload');
+        const fileNameEl = document.getElementById('fileName');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const processButton = document.getElementById('processButton');
+        const buttonText = document.getElementById('buttonText');
+        const buttonLoader = document.getElementById('buttonLoader');
+        const saveButton = document.getElementById('saveButton');
+        const copyProgrammedBtn = document.getElementById('copyProgrammed');
+        const copyMonitoredBtn = document.getElementById('copyMonitored');
+        const programmedParamsText = document.getElementById('programmedParams');
+        const monitoredParamsText = document.getElementById('monitoredParams');
+        const copyNotification = document.getElementById('copyNotification');
+        const errorNotification = document.getElementById('errorNotification');
+        const errorMessage = document.getElementById('errorMessage');
+        const historyContainer = document.getElementById('historyContainer');
+        const historyPlaceholder = document.getElementById('historyPlaceholder');
+        const patientIdInput = document.getElementById('patientId');
 
-        ui.uploadButton.addEventListener('click', () => ui.imageUpload.click());
-        ui.imageUpload.addEventListener('change', (event) => {
+        // --- ESTADO DE LA APLICACIÓN ---
+        let base64ImageData = null;
+        let currentExtractedData = null;
+
+        // --- MANEJADORES DE EVENTOS ---
+        imageUpload.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
-                resetAnalysisState();
-                ui.analysisSection.classList.remove('hidden');
-                ui.loader.classList.remove('hidden');
+                fileNameEl.textContent = file.name;
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    ui.imagePreview.src = e.target.result;
-                    ui.imagePreviewContainer.classList.remove('hidden');
-                    analyzeImage(e.target.result.split(',')[1]);
+                    imagePreview.src = e.target.result;
+                    base64ImageData = e.target.result.split(',')[1];
+                    imagePreviewContainer.classList.remove('hidden');
+                    processButton.disabled = false;
+                    saveButton.disabled = true; // Deshabilitar hasta nuevo procesamiento
+                    currentExtractedData = null;
                 };
                 reader.readAsDataURL(file);
             }
         });
-        ui.tabEvo.addEventListener('click', () => {
-            ui.tabEvo.classList.add('active'); ui.tabDb.classList.remove('active');
-            ui.contentEvo.classList.remove('hidden'); ui.contentDb.classList.add('hidden');
-        });
-        ui.tabDb.addEventListener('click', () => {
-            ui.tabDb.classList.add('active'); ui.tabEvo.classList.remove('active');
-            ui.contentDb.classList.remove('hidden'); ui.contentEvo.classList.add('hidden');
-        });
-        ui.evolutionCopyArea.addEventListener('click', () => {
-            ui.evolutionCopyArea.select();
-            document.execCommand('copy');
-            ui.copyFeedback.textContent = '¡Copiado!';
-            setTimeout(() => ui.copyFeedback.textContent = '', 2000);
-        });
-        ui.saveButton.addEventListener('click', async () => {
-            if (!extractedData || !userId) return;
-            ui.saveButton.disabled = true; ui.saveButton.textContent = 'Guardando...';
-            try {
-                const dataToSave = { ...extractedData, userId, timestamp: serverTimestamp() };
-                await addDoc(collection(db, `artifacts/${APP_ID}/public/data/readings`), dataToSave);
-                resetAnalysisState();
-            } catch (error) { console.error("Error saving data:", error); } 
-            finally { ui.saveButton.disabled = false; ui.saveButton.textContent = 'Guardar en Base de Datos'; }
-        });
-        ui.dataTableBody.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-btn')) {
-                const docId = e.target.dataset.id;
-                if (confirm('¿Borrar este registro?')) {
-                    await deleteDoc(doc(db, `artifacts/${APP_ID}/public/data/readings`, docId));
-                }
-            }
-        });
-        ui.exportCsvButton.addEventListener('click', () => {
-            if (allDbData.length === 0) return;
-            const flattenedData = allDbData.map(item => {
-                const base = { id: item.id, userId: item.userId, timestamp: item.timestamp ? new Date(item.timestamp.toMillis()).toISOString() : '', modo: item.programmed_params?.Modo || '' };
-                const flatProgrammed = Object.fromEntries(Object.entries(item.programmed_params || {}).map(([k,v]) => [`prog_${k}`, v]));
-                const flatPatient = Object.fromEntries(Object.entries(item.patient_params || {}).map(([k,v]) => [`pac_${k}`, v]));
-                return {...base, ...flatProgrammed, ...flatPatient};
-            });
-            const csv = Papa.unparse(flattenedData);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.setAttribute("href", URL.createObjectURL(blob));
-            link.setAttribute("download", `kinevent_logger_data_${new Date().toISOString().split('T')[0]}.csv`);
-            link.click();
-        });
 
-        // --- CORE LOGIC & HELPERS ---
-        async function analyzeImage(base64ImageData) {
-            const prompt = `Sos un kinesiólogo experto analizando la pantalla de un ventilador NeumoVent, probablemente un modelo GraphNet. Extraé los parámetros ventilatorios. Organizalos en dos categorías: "programmed_params" (los seteados por el operador) y "patient_params" (los medidos por el equipo). Devolvé la respuesta únicamente en formato JSON. Las claves posibles para "programmed_params" son: "Modo", "VT" (o "VC"), "PEEP", "FR" (o "f"), "FiO2", "T insp", "Rel I:E", "P control", "P soporte", "Trigger", "Ciclado". Las claves posibles para "patient_params" son: "VTe" (o "VTm"), "VMe", "FR tot", "P pico", "P meseta", "P media", "PEEP tot", "C stat", "Raw". Si un valor no está en la pantalla, no incluyas la clave.`;
+        processButton.addEventListener('click', handleImageProcessing);
+        saveButton.addEventListener('click', handleSaveToHistory);
+        copyProgrammedBtn.addEventListener('click', () => handleCopy(programmedParamsText));
+        copyMonitoredBtn.addEventListener('click', () => handleCopy(monitoredParamsText));
+
+        // --- LÓGICA PRINCIPAL ---
+        async function handleImageProcessing() {
+            if (!base64ImageData) {
+                showError("Por favor, selecciona una imagen primero.");
+                return;
+            }
+            setLoading(true);
             try {
-                const payload = { contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } }] }] };
-                const apiKey = ""; // Proxied by environment
+                const prompt = `Eres un experto en terapia intensiva analizando la pantalla de un ventilador mecánico Neumovent. Basado en la imagen proporcionada, extrae los parámetros ventilatorios. Devuelve un único objeto JSON con dos claves: "parametros_programados" y "parametros_monitorizados".
+                - En "parametros_programados", incluye los valores de la franja inferior: VT, f (frecuencia), PEEP, FiO2, Ti (tiempo insp), y la forma de la onda de flujo.
+                - En "parametros_monitorizados", incluye los valores de la franja superior y la columna izquierda: Presión Pico, Presión Plateau, Presión Media, PEEP, VT espirado, Volumen Minuto, y Frecuencia Total.
+                Si un valor no es claramente visible, usa el valor null. No incluyas explicaciones, solo el objeto JSON.`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+                
+                const apiKey = ""; // Gestionada por el entorno
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(`API call failed: ${response.status}`);
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`Error de la API: ${response.statusText}`);
+                
                 const result = await response.json();
-                const text = result.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
-                displayExtractedData(JSON.parse(text));
+                const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!content) throw new Error("La respuesta de la API no contiene datos válidos.");
+
+                currentExtractedData = JSON.parse(content);
+                displayResults(currentExtractedData);
+                saveButton.disabled = false;
+
             } catch (error) {
-                console.error("Error analyzing image:", error);
-                ui.loader.classList.add('hidden');
-                ui.analysisError.classList.remove('hidden');
+                console.error("Error procesando la imagen:", error);
+                showError("No se pudieron extraer los datos. Intenta con una imagen más clara.");
+                currentExtractedData = null;
+                saveButton.disabled = true;
+            } finally {
+                setLoading(false);
             }
         }
-        function resetAnalysisState() {
-            ui.analysisSection.classList.add('hidden');
-            ui.analysisResult.classList.add('hidden');
-            ui.analysisError.classList.add('hidden');
-            ui.loader.classList.add('hidden');
-            ui.imagePreviewContainer.classList.add('hidden');
-            ui.imageUpload.value = '';
-            extractedData = null;
+
+        async function handleSaveToHistory() {
+            if (!currentExtractedData || !db || !userId) {
+                showError("No hay datos para guardar o la base de datos no está disponible.");
+                return;
+            }
+            saveButton.disabled = true;
+            try {
+                const docRef = collection(db, `artifacts/${appId}/users/${userId}/ventilatorReadings`);
+                await addDoc(docRef, {
+                    patientId: patientIdInput.value || "Sin ID",
+                    timestamp: serverTimestamp(),
+                    programmed: currentExtractedData.parametros_programados || {},
+                    monitored: currentExtractedData.parametros_monitorizados || {}
+                });
+                showNotification("¡Registro guardado en el historial!", "success");
+            } catch (error) {
+                console.error("Error guardando en Firestore:", error);
+                showError("No se pudo guardar el registro.");
+                saveButton.disabled = false;
+            }
         }
 
-        // --- START THE APP ---
-        window.onload = initApp;
+        function listenToHistory() {
+            if (!db || !userId) return;
+            const historyCollection = collection(db, `artifacts/${appId}/users/${userId}/ventilatorReadings`);
+            const q = query(historyCollection, orderBy("timestamp", "desc"));
+
+            unsubscribeHistory = onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    historyPlaceholder.classList.remove('hidden');
+                    historyContainer.innerHTML = '';
+                    historyContainer.appendChild(historyPlaceholder);
+                } else {
+                    historyPlaceholder.classList.add('hidden');
+                    historyContainer.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const record = doc.data();
+                        const recordEl = createHistoryElement(record);
+                        historyContainer.appendChild(recordEl);
+                    });
+                }
+            }, (error) => {
+                console.error("Error al obtener historial:", error);
+                showError("No se pudo cargar el historial de registros.");
+            });
+        }
+
+        // --- FUNCIONES DE UI Y UTILIDADES ---
+        function displayResults(data) {
+            programmedParamsText.value = formatParams(data.parametros_programados);
+            monitoredParamsText.value = formatParams(data.parametros_monitorizados);
+        }
+
+        function formatParams(params) {
+            if (!params) return "No disponible";
+            return Object.entries(params)
+                .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value !== null ? value : 'N/A'}`)
+                .join('\n');
+        }
+
+        function createHistoryElement(record) {
+            const div = document.createElement('div');
+            div.className = 'bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-sm fade-in';
+            
+            const date = record.timestamp ? record.timestamp.toDate().toLocaleString('es-AR') : 'Fecha no disponible';
+            
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-bold text-blue-700">${record.patientId}</p>
+                        <p class="text-sm text-gray-500">${date}</p>
+                    </div>
+                </div>
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-semibold mb-1">Programados</h4>
+                        <pre class="bg-white p-2 rounded text-xs whitespace-pre-wrap">${formatParams(record.programmed)}</pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-1">Monitorizados</h4>
+                        <pre class="bg-white p-2 rounded text-xs whitespace-pre-wrap">${formatParams(record.monitored)}</pre>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        function handleCopy(textarea) {
+            if (textarea.value) {
+                textarea.select();
+                document.execCommand('copy');
+                showNotification("¡Texto copiado al portapapeles!", "success");
+            }
+        }
+
+        function setLoading(isLoading) {
+            processButton.disabled = isLoading;
+            buttonText.classList.toggle('hidden', isLoading);
+            buttonLoader.classList.toggle('hidden', !isLoading);
+        }
+
+        function showNotification(message, type = 'success') {
+            copyNotification.textContent = message;
+            copyNotification.className = `mt-4 p-3 rounded-lg text-center fade-in ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            copyNotification.classList.remove('hidden');
+            setTimeout(() => copyNotification.classList.add('hidden'), 3000);
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorNotification.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
