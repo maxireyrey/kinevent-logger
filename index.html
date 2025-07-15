@@ -7,40 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .btn-primary {
-            @apply bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center;
-        }
-        .btn-secondary {
-            @apply bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-all duration-300;
-        }
-         .btn-success {
-            @apply bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed;
-        }
-        .card {
-            @apply bg-white p-6 rounded-xl shadow-lg border border-gray-200;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-primary { @apply bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center; }
+        .btn-secondary { @apply bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-all duration-300; }
+        .btn-success { @apply bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed; }
+        .card { @apply bg-white p-6 rounded-xl shadow-lg border border-gray-200; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -63,12 +38,10 @@
                         <p id="fileName" class="text-sm text-gray-500 mt-1">No se ha seleccionado archivo</p>
                     </label>
                 </div>
-
                 <div id="imagePreviewContainer" class="mt-6 hidden">
                     <h3 class="font-semibold text-lg mb-2">Vista Previa:</h3>
                     <img id="imagePreview" src="#" alt="Vista previa de la imagen" class="w-full rounded-lg shadow-md"/>
                 </div>
-                
                 <button id="processButton" class="btn-primary w-full mt-6" disabled>
                     <span id="buttonText"><i class="fas fa-cogs mr-2"></i>Procesar Imagen</span>
                     <div id="buttonLoader" class="loader hidden"></div>
@@ -78,16 +51,11 @@
             <!-- Columna de Resultados -->
             <div class="card fade-in">
                 <h2 class="text-2xl font-semibold text-gray-700 mb-4">2. Resultados Extraídos</h2>
-                
-                <div id="errorNotification" class="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-center hidden fade-in">
-                    <i class="fas fa-exclamation-triangle mr-2"></i><span id="errorMessage"></span>
-                </div>
-                
+                <div id="errorNotification" class="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-center hidden fade-in"><i class="fas fa-exclamation-triangle mr-2"></i><span id="errorMessage"></span></div>
                 <div class="mb-4">
                      <label for="patientId" class="block text-sm font-medium text-gray-700 mb-1">ID Paciente (Opcional)</label>
                      <input type="text" id="patientId" class="w-full p-2 bg-white rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ej: Cama 5, HNC-123">
                 </div>
-
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-semibold text-lg text-gray-600">Parámetros Programados</h3>
@@ -95,7 +63,6 @@
                     </div>
                     <textarea id="programmedParams" rows="5" class="w-full p-3 bg-gray-100 rounded-md border" readonly placeholder="Los parámetros programados aparecerán aquí..."></textarea>
                 </div>
-
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-semibold text-lg text-gray-600">Parámetros del Paciente</h3>
@@ -112,42 +79,38 @@
         <div class="card fade-in">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4">3. Historial de Registros</h2>
             <div id="historyContainer" class="space-y-4">
-                <p id="historyPlaceholder" class="text-gray-500 text-center py-8">Aún no hay registros guardados. Procesa una imagen y guarda los resultados para verlos aquí.</p>
-                <!-- Los registros del historial se insertarán aquí -->
+                <p id="historyPlaceholder" class="text-gray-500 text-center py-8">Aún no hay registros guardados.</p>
             </div>
         </div>
     </div>
 
     <script type="module">
-        // Importar funciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIGURACIÓN DE FIREBASE ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        let db, auth, userId;
-        let unsubscribeHistory = null; // Para detener el listener de Firestore
+        // ==================================================================
+        // PASO 1: CONFIGURACIÓN DE FIREBASE
+        // Ve a tu proyecto en https://console.firebase.google.com/
+        // En "Configuración del proyecto" -> "General", copia el objeto de configuración aquí.
+        // ==================================================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyDEUI7-IGwVc-qUfp6TW5Fgx1wV_1GEsDg",
+          authDomain: "kinevent-logger.firebaseapp.com",
+          projectId: "kinevent-logger",
+          storageBucket: "kinevent-logger.firebasestorage.app",
+          messagingSenderId: "667092339870",
+          appId: "1:667092339870:web:9caa108cae9c71c28d7f8f",
+          measurementId: "G-0F2HHS59ZJ"
+        };
 
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                 await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                 await signInAnonymously(auth);
-            }
-            userId = auth.currentUser.uid;
-            listenToHistory();
+        // ==================================================================
+        // PASO 2: CLAVE DE API DE GEMINI
+        // Obtén tu clave en https://aistudio.google.com/app/apikey y pégala aquí.
+        // ==================================================================
+        const GEMINI_API_KEY = "AIzaSyCnEmLz7Tqr4dH1x0ii4UhhHfWjljERGDM";
 
-        } catch(e) {
-            console.error("Error al inicializar Firebase:", e);
-            showError("No se pudo conectar a la base de datos.");
-        }
+        // --- El resto del código funciona automáticamente ---
 
         // --- ELEMENTOS DEL DOM ---
         const imageUpload = document.getElementById('imageUpload');
@@ -168,6 +131,46 @@
         const historyContainer = document.getElementById('historyContainer');
         const historyPlaceholder = document.getElementById('historyPlaceholder');
         const patientIdInput = document.getElementById('patientId');
+        
+        // --- FUNCIONES DE UI Y UTILIDADES (Definidas antes de ser usadas) ---
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorNotification.classList.remove('hidden');
+        }
+        
+        function hideError() {
+            errorNotification.classList.add('hidden');
+        }
+
+        function showNotification(message, type = 'success') {
+            copyNotification.textContent = message;
+            copyNotification.className = `mt-4 p-3 rounded-lg text-center fade-in ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            copyNotification.classList.remove('hidden');
+            setTimeout(() => copyNotification.classList.add('hidden'), 3000);
+        }
+
+        function setLoading(isLoading) {
+            processButton.disabled = isLoading;
+            buttonText.classList.toggle('hidden', isLoading);
+            buttonLoader.classList.toggle('hidden', !isLoading);
+        }
+
+        // --- INICIALIZACIÓN DE FIREBASE ---
+        let db, auth, userId;
+        try {
+            if (firebaseConfig.apiKey === "TU_API_KEY_DE_FIREBASE") {
+                throw new Error("Las claves de configuración de Firebase no han sido reemplazadas.");
+            }
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            const userCredential = await signInAnonymously(auth);
+            userId = userCredential.user.uid;
+            listenToHistory();
+        } catch(e) {
+            console.error("Error al inicializar Firebase:", e);
+            showError("Error de configuración. Revisa tus claves de Firebase en el código.");
+        }
 
         // --- ESTADO DE LA APLICACIÓN ---
         let base64ImageData = null;
@@ -184,7 +187,7 @@
                     base64ImageData = e.target.result.split(',')[1];
                     imagePreviewContainer.classList.remove('hidden');
                     processButton.disabled = false;
-                    saveButton.disabled = true; // Deshabilitar hasta nuevo procesamiento
+                    saveButton.disabled = true;
                     currentExtractedData = null;
                 };
                 reader.readAsDataURL(file);
@@ -202,7 +205,12 @@
                 showError("Por favor, selecciona una imagen primero.");
                 return;
             }
+             if (!GEMINI_API_KEY || GEMINI_API_KEY === "PEGA_AQUÍ_TU_CLAVE_DE_API_DE_GEMINI") {
+                showError("Error de configuración: Falta la clave de API de Gemini en el código.");
+                return;
+            }
             setLoading(true);
+            hideError();
             try {
                 const prompt = `Eres un experto en terapia intensiva analizando la pantalla de un ventilador mecánico Neumovent. Basado en la imagen proporcionada, extrae los parámetros ventilatorios. Devuelve un único objeto JSON con dos claves: "parametros_programados" y "parametros_monitorizados".
                 - En "parametros_programados", incluye los valores de la franja inferior: VT, f (frecuencia), PEEP, FiO2, Ti (tiempo insp), y la forma de la onda de flujo.
@@ -214,8 +222,7 @@
                     generationConfig: { responseMimeType: "application/json" }
                 };
                 
-                const apiKey = ""; // Gestionada por el entorno
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -223,7 +230,7 @@
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error(`Error de la API: ${response.statusText}`);
+                if (!response.ok) throw new Error(`Error de la API: ${response.status} ${response.statusText}`);
                 
                 const result = await response.json();
                 const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -250,7 +257,7 @@
             }
             saveButton.disabled = true;
             try {
-                const docRef = collection(db, `artifacts/${appId}/users/${userId}/ventilatorReadings`);
+                const docRef = collection(db, `ventilatorReadings`);
                 await addDoc(docRef, {
                     patientId: patientIdInput.value || "Sin ID",
                     timestamp: serverTimestamp(),
@@ -266,11 +273,11 @@
         }
 
         function listenToHistory() {
-            if (!db || !userId) return;
-            const historyCollection = collection(db, `artifacts/${appId}/users/${userId}/ventilatorReadings`);
+            if (!db) return;
+            const historyCollection = collection(db, `ventilatorReadings`);
             const q = query(historyCollection, orderBy("timestamp", "desc"));
 
-            unsubscribeHistory = onSnapshot(q, (snapshot) => {
+            onSnapshot(q, (snapshot) => {
                 if (snapshot.empty) {
                     historyPlaceholder.classList.remove('hidden');
                     historyContainer.innerHTML = '';
@@ -290,7 +297,6 @@
             });
         }
 
-        // --- FUNCIONES DE UI Y UTILIDADES ---
         function displayResults(data) {
             programmedParamsText.value = formatParams(data.parametros_programados);
             monitoredParamsText.value = formatParams(data.parametros_monitorizados);
@@ -306,9 +312,7 @@
         function createHistoryElement(record) {
             const div = document.createElement('div');
             div.className = 'bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-sm fade-in';
-            
             const date = record.timestamp ? record.timestamp.toDate().toLocaleString('es-AR') : 'Fecha no disponible';
-            
             div.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div>
@@ -336,24 +340,6 @@
                 document.execCommand('copy');
                 showNotification("¡Texto copiado al portapapeles!", "success");
             }
-        }
-
-        function setLoading(isLoading) {
-            processButton.disabled = isLoading;
-            buttonText.classList.toggle('hidden', isLoading);
-            buttonLoader.classList.toggle('hidden', !isLoading);
-        }
-
-        function showNotification(message, type = 'success') {
-            copyNotification.textContent = message;
-            copyNotification.className = `mt-4 p-3 rounded-lg text-center fade-in ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-            copyNotification.classList.remove('hidden');
-            setTimeout(() => copyNotification.classList.add('hidden'), 3000);
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorNotification.classList.remove('hidden');
         }
     </script>
 </body>
