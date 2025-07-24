@@ -3,344 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extractor de Parámetros Ventilatorios</title>
+    <title>Visualizador de Notas MIDI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .btn-primary { @apply bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center; }
-        .btn-secondary { @apply bg-gray-200 text-gray-700 font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-all duration-300; }
-        .btn-success { @apply bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed; }
-        .card { @apply bg-white p-6 rounded-xl shadow-lg border border-gray-200; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #note-display {
+            transition: all 0.1s ease-in-out;
+        }
     </style>
 </head>
-<body class="bg-gray-50 p-4 sm:p-6 lg:p-8">
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div class="max-w-6xl mx-auto">
-        <div class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Extractor de Parámetros Ventilatorios</h1>
-            <p class="text-gray-600 mt-2 text-lg">Sube una foto del monitor Neumovent, extrae los datos y guarda un historial clínico.</p>
-        </div>
+    <div class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-8 text-center border border-gray-700">
+        
+        <div id="main-content">
+            <h1 class="text-3xl font-bold text-cyan-400 mb-4">Visualizador de Notas MIDI</h1>
+            <p class="text-gray-400 mb-6" id="instructions">Presiona "Activar MIDI" para empezar a recibir notas de tu teclado.</p>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Columna de Carga y Visualización -->
-            <div class="card fade-in">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">1. Cargar Imagen</h2>
-                <div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <input type="file" id="imageUpload" class="hidden" accept="image/*">
-                    <label for="imageUpload" class="cursor-pointer">
-                        <i class="fas fa-cloud-upload-alt text-5xl text-blue-500 mb-3"></i>
-                        <p class="text-gray-700 font-semibold">Haz clic para seleccionar una imagen</p>
-                        <p id="fileName" class="text-sm text-gray-500 mt-1">No se ha seleccionado archivo</p>
-                    </label>
-                </div>
-                <div id="imagePreviewContainer" class="mt-6 hidden">
-                    <h3 class="font-semibold text-lg mb-2">Vista Previa:</h3>
-                    <img id="imagePreview" src="#" alt="Vista previa de la imagen" class="w-full rounded-lg shadow-md"/>
-                </div>
-                <button id="processButton" class="btn-primary w-full mt-6" disabled>
-                    <span id="buttonText"><i class="fas fa-cogs mr-2"></i>Procesar Imagen</span>
-                    <div id="buttonLoader" class="loader hidden"></div>
+            <!-- Start Button -->
+            <div id="start-container" class="mb-6">
+                <button id="start-button" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                    Activar MIDI
                 </button>
             </div>
+            
+            <!-- MIDI Status Display -->
+            <div id="status-container" class="hidden mb-6">
+                <div id="midi-status-box" class="bg-gray-700 p-3 rounded-lg flex items-center justify-center space-x-3 text-lg">
+                     <span id="midi-status">Esperando conexión...</span>
+                </div>
+            </div>
 
-            <!-- Columna de Resultados -->
-            <div class="card fade-in">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">2. Resultados Extraídos</h2>
-                <div id="errorNotification" class="mb-4 p-3 bg-red-100 text-red-800 rounded-lg text-center hidden fade-in"><i class="fas fa-exclamation-triangle mr-2"></i><span id="errorMessage"></span></div>
-                <div class="mb-4">
-                     <label for="patientId" class="block text-sm font-medium text-gray-700 mb-1">ID Paciente (Opcional)</label>
-                     <input type="text" id="patientId" class="w-full p-2 bg-white rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ej: Cama 5, HNC-123">
+            <!-- Note Display Area -->
+            <div id="note-display-container" class="hidden">
+                <div id="note-display" class="bg-gray-900 text-gray-500 rounded-lg h-48 flex items-center justify-center border-2 border-dashed border-gray-600">
+                    <span class="font-black text-6xl" id="note-text">...</span>
                 </div>
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-lg text-gray-600">Parámetros Programados</h3>
-                        <button id="copyProgrammed" class="btn-secondary"><i class="far fa-copy mr-1"></i> Copiar</button>
-                    </div>
-                    <textarea id="programmedParams" rows="5" class="w-full p-3 bg-gray-100 rounded-md border" readonly placeholder="Los parámetros programados aparecerán aquí..."></textarea>
-                </div>
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-lg text-gray-600">Parámetros del Paciente</h3>
-                        <button id="copyMonitored" class="btn-secondary"><i class="far fa-copy mr-1"></i> Copiar</button>
-                    </div>
-                    <textarea id="monitoredParams" rows="5" class="w-full p-3 bg-gray-100 rounded-md border" readonly placeholder="Los parámetros monitorizados aparecerán aquí..."></textarea>
-                </div>
-                 <div id="copyNotification" class="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-center hidden fade-in"></div>
-                 <button id="saveButton" class="btn-success w-full mt-6" disabled><i class="fas fa-save mr-2"></i>Guardar en Historial</button>
             </div>
         </div>
-        
-        <!-- Sección de Historial -->
-        <div class="card fade-in">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">3. Historial de Registros</h2>
-            <div id="historyContainer" class="space-y-4">
-                <p id="historyPlaceholder" class="text-gray-500 text-center py-8">Aún no hay registros guardados.</p>
+
+        <!-- Error Display Area (Initially hidden) -->
+        <div id="midi-error-container" class="hidden mt-4 bg-red-900 border border-red-600 text-white px-4 py-3 rounded-lg" role="alert">
+            <div id="midi-error-content">
+                <strong class="font-bold text-xl block mb-2">¡Acción Requerida!</strong>
+                <span class="block sm:inline" id="midi-error-message"></span>
+                <button id="open-new-tab-button" class="hidden mt-4 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-4 rounded-lg w-full text-lg">
+                </button>
             </div>
         </div>
+
     </div>
+    
+    <footer class="mt-8 text-gray-500 text-sm">
+        Creado con Tone.js y la Web MIDI API.
+    </footer>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- UI Elements ---
+    const mainContent = document.getElementById('main-content');
+    const startButton = document.getElementById('start-button');
+    const startContainer = document.getElementById('start-container');
+    const statusContainer = document.getElementById('status-container');
+    const noteDisplayContainer = document.getElementById('note-display-container');
+    const instructions = document.getElementById('instructions');
+    
+    const midiStatus = document.getElementById('midi-status');
+    const midiStatusBox = document.getElementById('midi-status-box');
+    
+    const midiErrorContainer = document.getElementById('midi-error-container');
+    const midiErrorMessage = document.getElementById('midi-error-message');
+    const openNewTabButton = document.getElementById('open-new-tab-button');
 
-        // ==================================================================
-        // PASO 1: CONFIGURACIÓN DE FIREBASE
-        // Ve a tu proyecto en https://console.firebase.google.com/
-        // En "Configuración del proyecto" -> "General", copia el objeto de configuración aquí.
-        // ==================================================================
-        const firebaseConfig = {
-          apiKey: "AIzaSyDEUI7-IGwVc-qUfp6TW5Fgx1wV_1GEsDg",
-          authDomain: "kinevent-logger.firebaseapp.com",
-          projectId: "kinevent-logger",
-          storageBucket: "kinevent-logger.firebasestorage.app",
-          messagingSenderId: "667092339870",
-          appId: "1:667092339870:web:9caa108cae9c71c28d7f8f",
-          measurementId: "G-0F2HHS59ZJ"
-        };
+    const noteText = document.getElementById('note-text');
 
-        // ==================================================================
-        // PASO 2: CLAVE DE API DE GEMINI
-        // Obtén tu clave en https://aistudio.google.com/app/apikey y pégala aquí.
-        // ==================================================================
-        const GEMINI_API_KEY = "AIzaSyCnEmLz7Tqr4dH1x0ii4UhhHfWjljERGDM";
-
-        // --- El resto del código funciona automáticamente ---
-
-        // --- ELEMENTOS DEL DOM ---
-        const imageUpload = document.getElementById('imageUpload');
-        const fileNameEl = document.getElementById('fileName');
-        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-        const imagePreview = document.getElementById('imagePreview');
-        const processButton = document.getElementById('processButton');
-        const buttonText = document.getElementById('buttonText');
-        const buttonLoader = document.getElementById('buttonLoader');
-        const saveButton = document.getElementById('saveButton');
-        const copyProgrammedBtn = document.getElementById('copyProgrammed');
-        const copyMonitoredBtn = document.getElementById('copyMonitored');
-        const programmedParamsText = document.getElementById('programmedParams');
-        const monitoredParamsText = document.getElementById('monitoredParams');
-        const copyNotification = document.getElementById('copyNotification');
-        const errorNotification = document.getElementById('errorNotification');
-        const errorMessage = document.getElementById('errorMessage');
-        const historyContainer = document.getElementById('historyContainer');
-        const historyPlaceholder = document.getElementById('historyPlaceholder');
-        const patientIdInput = document.getElementById('patientId');
+    // --- Main Initialization on User Interaction ---
+    startButton.addEventListener('click', async () => {
+        await Tone.start();
+        console.log('Audio Context started');
         
-        // --- FUNCIONES DE UI Y UTILIDADES (Definidas antes de ser usadas) ---
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorNotification.classList.remove('hidden');
+        setupMidi();
+
+        startContainer.classList.add('hidden');
+        statusContainer.classList.remove('hidden');
+    });
+    
+    openNewTabButton.addEventListener('click', () => {
+        // This opens the current HTML content in a new tab
+        const newWindow = window.open();
+        newWindow.document.write(document.documentElement.outerHTML);
+        newWindow.document.close();
+    });
+
+    function setupMidi() {
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess()
+                .then(onMIDISuccess, onMIDIFailure);
+        } else {
+            onMIDIFailure({ name: "NotSupportedError" });
+        }
+    }
+
+    function onMIDISuccess(midiAccess) {
+        console.log('MIDI Access Granted.');
+        instructions.textContent = "¡Listo! Toca una tecla en tu teclado MIDI.";
+        noteDisplayContainer.classList.remove('hidden');
+
+        midiStatus.textContent = 'MIDI Conectado';
+        midiStatusBox.classList.remove('bg-gray-700');
+        midiStatusBox.classList.add('bg-green-700');
+        midiErrorContainer.classList.add('hidden');
+
+        const inputs = midiAccess.inputs.values();
+        let inputFound = false;
+        for (let input of inputs) {
+            input.onmidimessage = getMIDIMessage;
+            console.log(`Listening to: ${input.name}`);
+            inputFound = true;
+        }
+
+        if (!inputFound) {
+             onMIDIFailure({ name: "NoDeviceError" });
+        }
+    }
+
+    function onMIDIFailure(err) {
+        let userMessage;
+        console.error('Could not access your MIDI devices.', err);
+
+        // Hide main content to focus user on the error and solution
+        mainContent.classList.add('hidden');
+        midiErrorContainer.classList.remove('hidden');
+
+        if (err && err.name === 'SecurityError') {
+            // FIX: Make the error message and button impossible to miss for the security error.
+            userMessage = 'Este panel de vista previa bloquea el acceso a MIDI.';
+            openNewTabButton.innerHTML = '👉 ¡Clic Aquí para Abrir y Activar MIDI! 👈';
+            openNewTabButton.classList.remove('hidden');
+            openNewTabButton.classList.add('animate-pulse');
+        } else {
+            openNewTabButton.classList.add('hidden');
+            if (err && err.name === 'NotSupportedError') {
+                userMessage = 'Tu navegador no es compatible con la API Web MIDI. Por favor, intenta con Google Chrome o Microsoft Edge.';
+            } else if (err && err.name === 'NoDeviceError') {
+                userMessage = 'MIDI conectado, pero no se encontraron teclados. Revisa la conexión de tu dispositivo.';
+            } else {
+                userMessage = 'No se pudo acceder a los dispositivos MIDI. Asegúrate de que estén conectados y que el navegador tenga los permisos necesarios.';
+            }
         }
         
-        function hideError() {
-            errorNotification.classList.add('hidden');
+        midiErrorMessage.textContent = userMessage;
+    }
+
+    function getMIDIMessage(message) {
+        const [command, note, velocity] = message.data;
+        if (command === 144 && velocity > 0) {
+            noteOn(note);
+        } else if (command === 128 || (command === 144 && velocity === 0)) {
+            noteOff(note);
         }
+    }
 
-        function showNotification(message, type = 'success') {
-            copyNotification.textContent = message;
-            copyNotification.className = `mt-4 p-3 rounded-lg text-center fade-in ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-            copyNotification.classList.remove('hidden');
-            setTimeout(() => copyNotification.classList.add('hidden'), 3000);
+    function noteOn(noteNumber) {
+        const noteName = Tone.Frequency(noteNumber, 'midi').toNote();
+        noteText.textContent = noteName;
+        noteDisplay.classList.remove('bg-gray-900', 'text-gray-500', 'border-dashed');
+        noteDisplay.classList.add('bg-cyan-400', 'text-gray-900', 'border-solid');
+        noteDisplay.style.transform = 'scale(1.05)';
+    }
+
+    function noteOff(noteNumber) {
+        const currentNoteName = Tone.Frequency(noteNumber, 'midi').toNote();
+        if (noteText.textContent === currentNoteName) {
+            noteText.textContent = '...';
+            noteDisplay.classList.add('bg-gray-900', 'text-gray-500', 'border-dashed');
+            noteDisplay.classList.remove('bg-cyan-400', 'text-gray-900', 'border-solid');
+            noteDisplay.style.transform = 'scale(1)';
         }
+    }
+});
+</script>
 
-        function setLoading(isLoading) {
-            processButton.disabled = isLoading;
-            buttonText.classList.toggle('hidden', isLoading);
-            buttonLoader.classList.toggle('hidden', !isLoading);
-        }
-
-        // --- INICIALIZACIÓN DE FIREBASE ---
-        let db, auth, userId;
-        try {
-            if (firebaseConfig.apiKey === "TU_API_KEY_DE_FIREBASE") {
-                throw new Error("Las claves de configuración de Firebase no han sido reemplazadas.");
-            }
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            const userCredential = await signInAnonymously(auth);
-            userId = userCredential.user.uid;
-            listenToHistory();
-        } catch(e) {
-            console.error("Error al inicializar Firebase:", e);
-            showError("Error de configuración. Revisa tus claves de Firebase en el código.");
-        }
-
-        // --- ESTADO DE LA APLICACIÓN ---
-        let base64ImageData = null;
-        let currentExtractedData = null;
-
-        // --- MANEJADORES DE EVENTOS ---
-        imageUpload.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                fileNameEl.textContent = file.name;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    imagePreview.src = e.target.result;
-                    base64ImageData = e.target.result.split(',')[1];
-                    imagePreviewContainer.classList.remove('hidden');
-                    processButton.disabled = false;
-                    saveButton.disabled = true;
-                    currentExtractedData = null;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        processButton.addEventListener('click', handleImageProcessing);
-        saveButton.addEventListener('click', handleSaveToHistory);
-        copyProgrammedBtn.addEventListener('click', () => handleCopy(programmedParamsText));
-        copyMonitoredBtn.addEventListener('click', () => handleCopy(monitoredParamsText));
-
-        // --- LÓGICA PRINCIPAL ---
-        async function handleImageProcessing() {
-            if (!base64ImageData) {
-                showError("Por favor, selecciona una imagen primero.");
-                return;
-            }
-             if (!GEMINI_API_KEY || GEMINI_API_KEY === "PEGA_AQUÍ_TU_CLAVE_DE_API_DE_GEMINI") {
-                showError("Error de configuración: Falta la clave de API de Gemini en el código.");
-                return;
-            }
-            setLoading(true);
-            hideError();
-            try {
-                const prompt = `Eres un experto en terapia intensiva analizando la pantalla de un ventilador mecánico Neumovent. Basado en la imagen proporcionada, extrae los parámetros ventilatorios. Devuelve un único objeto JSON con dos claves: "parametros_programados" y "parametros_monitorizados".
-                - En "parametros_programados", incluye los valores de la franja inferior: VT, f (frecuencia), PEEP, FiO2, Ti (tiempo insp), y la forma de la onda de flujo.
-                - En "parametros_monitorizados", incluye los valores de la franja superior y la columna izquierda: Presión Pico, Presión Plateau, Presión Media, PEEP, VT espirado, Volumen Minuto, y Frecuencia Total.
-                Si un valor no es claramente visible, usa el valor null. No incluyas explicaciones, solo el objeto JSON.`;
-
-                const payload = {
-                    contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } }] }],
-                    generationConfig: { responseMimeType: "application/json" }
-                };
-                
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) throw new Error(`Error de la API: ${response.status} ${response.statusText}`);
-                
-                const result = await response.json();
-                const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!content) throw new Error("La respuesta de la API no contiene datos válidos.");
-
-                currentExtractedData = JSON.parse(content);
-                displayResults(currentExtractedData);
-                saveButton.disabled = false;
-
-            } catch (error) {
-                console.error("Error procesando la imagen:", error);
-                showError("No se pudieron extraer los datos. Intenta con una imagen más clara.");
-                currentExtractedData = null;
-                saveButton.disabled = true;
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        async function handleSaveToHistory() {
-            if (!currentExtractedData || !db || !userId) {
-                showError("No hay datos para guardar o la base de datos no está disponible.");
-                return;
-            }
-            saveButton.disabled = true;
-            try {
-                const docRef = collection(db, `ventilatorReadings`);
-                await addDoc(docRef, {
-                    patientId: patientIdInput.value || "Sin ID",
-                    timestamp: serverTimestamp(),
-                    programmed: currentExtractedData.parametros_programados || {},
-                    monitored: currentExtractedData.parametros_monitorizados || {}
-                });
-                showNotification("¡Registro guardado en el historial!", "success");
-            } catch (error) {
-                console.error("Error guardando en Firestore:", error);
-                showError("No se pudo guardar el registro.");
-                saveButton.disabled = false;
-            }
-        }
-
-        function listenToHistory() {
-            if (!db) return;
-            const historyCollection = collection(db, `ventilatorReadings`);
-            const q = query(historyCollection, orderBy("timestamp", "desc"));
-
-            onSnapshot(q, (snapshot) => {
-                if (snapshot.empty) {
-                    historyPlaceholder.classList.remove('hidden');
-                    historyContainer.innerHTML = '';
-                    historyContainer.appendChild(historyPlaceholder);
-                } else {
-                    historyPlaceholder.classList.add('hidden');
-                    historyContainer.innerHTML = '';
-                    snapshot.forEach(doc => {
-                        const record = doc.data();
-                        const recordEl = createHistoryElement(record);
-                        historyContainer.appendChild(recordEl);
-                    });
-                }
-            }, (error) => {
-                console.error("Error al obtener historial:", error);
-                showError("No se pudo cargar el historial de registros.");
-            });
-        }
-
-        function displayResults(data) {
-            programmedParamsText.value = formatParams(data.parametros_programados);
-            monitoredParamsText.value = formatParams(data.parametros_monitorizados);
-        }
-
-        function formatParams(params) {
-            if (!params) return "No disponible";
-            return Object.entries(params)
-                .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value !== null ? value : 'N/A'}`)
-                .join('\n');
-        }
-
-        function createHistoryElement(record) {
-            const div = document.createElement('div');
-            div.className = 'bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-sm fade-in';
-            const date = record.timestamp ? record.timestamp.toDate().toLocaleString('es-AR') : 'Fecha no disponible';
-            div.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-bold text-blue-700">${record.patientId}</p>
-                        <p class="text-sm text-gray-500">${date}</p>
-                    </div>
-                </div>
-                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <h4 class="font-semibold mb-1">Programados</h4>
-                        <pre class="bg-white p-2 rounded text-xs whitespace-pre-wrap">${formatParams(record.programmed)}</pre>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold mb-1">Monitorizados</h4>
-                        <pre class="bg-white p-2 rounded text-xs whitespace-pre-wrap">${formatParams(record.monitored)}</pre>
-                    </div>
-                </div>
-            `;
-            return div;
-        }
-
-        function handleCopy(textarea) {
-            if (textarea.value) {
-                textarea.select();
-                document.execCommand('copy');
-                showNotification("¡Texto copiado al portapapeles!", "success");
-            }
-        }
-    </script>
 </body>
 </html>
